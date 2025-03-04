@@ -14,6 +14,8 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(setq evil-disable-insert-state-bindings t)
+
 ;; Evil: vi emulation
 (use-package evil
   :ensure t
@@ -29,8 +31,11 @@
   (evil-mode)
 
   ;; If you use Magit, start editing in insert state
-  (add-hook 'git-commit-setup-hook 'evil-insert-state)
+  ;; (add-hook 'git-commit-setup-hook 'evil-insert-state)
 
   ;; Configuring initial major mode for some modes
-  (evil-set-initial-state 'eat-mode 'emacs)
-  (evil-set-initial-state 'vterm-mode 'emacs))
+  ;(evil-set-initial-state 'eat-mode 'emacs)
+  ;(evil-set-initial-state 'vterm-mode 'emacs)
+  )
+
+(setq evil-default-state 'emacs)

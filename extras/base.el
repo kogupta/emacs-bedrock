@@ -31,7 +31,8 @@
 (use-package avy
   :ensure t
   :demand t
-  :bind (("C-c j" . avy-goto-line)
+  :bind (("C-:" . avy-goto-char-2)
+	 ("C-c j" . avy-goto-line)
          ("s-j"   . avy-goto-char-timer)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,6 +50,7 @@
          ("M-y"   . consult-yank-pop)   ; orig. yank-pop
          ;; Searching
          ("M-s r" . consult-ripgrep)
+         ("C-s" . consult-line)         ; Noted!
          ("M-s l" . consult-line)       ; Alternative: rebind C-s to use
          ("M-s s" . consult-line)       ; consult-line instead of isearch, bind
          ("M-s L" . consult-line-multi) ; isearch to M-s s
@@ -64,8 +66,7 @@
   ;; Narrowing lets you restrict results to certain groups of candidates
   (setq consult-narrow-key "<"))
 
-;; Embark: supercharged context-dependent menu; kinda like a
-;; super-charged right-click.
+;; Embark: supercharged context-dependent menu; kinda like a super-charged right-click.
 (use-package embark
   :ensure t
   :demand t
@@ -82,8 +83,7 @@
        (cdr (ring-ref avy-ring 0))))
     t)
 
-  ;; After invoking avy-goto-char-timer, hit "." to run embark at the next
-  ;; candidate you select
+  ;; After invoking avy-goto-char-timer, hit "." to run embark at the next candidate you select
   (setf (alist-get ?. avy-dispatch-alist) 'bedrock/avy-action-embark))
 
 (use-package embark-consult
@@ -136,13 +136,6 @@
   :config
   (corfu-popupinfo-mode))
 
-;; Make corfu popup come up in terminal overlay
-(use-package corfu-terminal
-  :if (not (display-graphic-p))
-  :ensure t
-  :config
-  (corfu-terminal-mode))
-
 ;; Fancy completion-at-point functions; there's too much in the cape package to
 ;; configure here; dive in when you're comfortable!
 (use-package cape
@@ -159,37 +152,9 @@
   :config
   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
-(use-package eshell
-  :init
-  (defun bedrock/setup-eshell ()
-    ;; Something funny is going on with how Eshell sets up its keymaps; this is
-    ;; a work-around to make C-r bound in the keymap
-    (keymap-set eshell-mode-map "C-r" 'consult-history))
-  :hook ((eshell-mode . bedrock/setup-eshell)))
-
-;; Eat: Emulate A Terminal
-(use-package eat
-  :ensure t
-  :custom
-  (eat-term-name "xterm")
-  :config
-  (eat-eshell-mode)                     ; use Eat to handle term codes in program output
-  (eat-eshell-visual-command-mode))     ; commands like less will be handled by Eat
 
 ;; Orderless: powerful completion style
 (use-package orderless
   :ensure t
   :config
   (setq completion-styles '(orderless)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Misc. editing enhancements
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Modify search results en masse
-(use-package wgrep
-  :ensure t
-  :config
-  (setq wgrep-auto-save-buffer t))

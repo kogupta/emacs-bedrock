@@ -17,6 +17,51 @@
 
 ;;; See "org-intro.txt" for a high-level overview.
 
+(set-language-environment 'utf-8)
+(setq locale-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(setq default-file-name-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
+
+(use-package org-bullets
+  :custom
+  (org-bullets-bullet-list '("●" "○" "*" "●" "○" "*" "●" "○" "*"))
+  :hook (org-mode . org-bullets-mode))
+;; org headers are HUGE: https://emacs.stackexchange.com/questions/22584/disable-enlarged-org-mode-header-appearance
+(defun my/org-mode-hook ()
+  "Stop the org-level headers from increasing in height relative to the other text."
+  (dolist (face '(org-level-1
+                  org-level-2
+                  org-level-3
+                  org-level-4
+                  org-level-5))
+    (set-face-attribute face nil :weight 'normal :height 1.0)))
+(add-hook 'org-mode-hook 'my/org-mode-hook)
+(add-hook 'org-mode-hook 'org-indent-mode)
+(add-hook 'org-mode-hook 'prettify-symbols-mode)
+
+(require 'org-tempo)
+(add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("py" . "src python"))
+(add-to-list 'org-structure-template-alist '("java" . "src java"))
+(add-to-list 'org-structure-template-alist '("json" . "src json"))
+
+(setq org-startup-indented t
+      org-src-tab-acts-natively t
+      prettify-symbols-unprettify-at-point 'right-edge
+      org-hide-leading-stars t
+      org-fontify-done-headline t
+      org-hide-emphasis-markers t
+      org-src-window-setup 'current-window  ;; use C-c ' window opens in current window
+      ;; org-pretty-entities t
+)
+(global-prettify-symbols-mode 1)
+
 ;;; Contents:
 ;;;
 ;;;  - Critical variables

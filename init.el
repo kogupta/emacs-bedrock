@@ -33,25 +33,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Package initialization
-;;
-;; We'll stick to the built-in GNU and non-GNU ELPAs (Emacs Lisp Package
-;; Archive) for the base install, but there are some other ELPAs you could look
-;; at if you want more packages. MELPA in particular is very popular. See
-;; instructions at:
-;;
-;;    https://melpa.org/#/getting-started
-;;
-;; You can simply uncomment the following if you'd like to get started with
-;; MELPA packages quickly:
-;;
-;; (with-eval-after-load 'package
-;;   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
+(with-eval-after-load 'package
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 
-;; If you want to turn off the welcome screen, uncomment this
-;(setopt inhibit-splash-screen t)
-
-(setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
-(setopt display-time-default-load-average nil) ; this information is useless for most
+(setopt inhibit-splash-screen t)                ;; turn off the welcome screen
+(setopt initial-major-mode 'org-mode)           ;; default mode for the *scratch* buffer
+(setq initial-scratch-message nil)              ;; disable initial message in scratch buffer
 
 ;; Automatically reread from disk if the underlying file changes
 (setopt auto-revert-avoid-polling t)
@@ -61,8 +48,13 @@
 (setopt auto-revert-check-vc-info t)
 (global-auto-revert-mode)
 
-;; Save history of minibuffer
-(savehist-mode)
+(electric-pair-mode t)              ;; Automatically insert closing parens
+(show-paren-mode 1)                 ;; Visualize matching parens
+(setq-default indent-tabs-mode nil) ;; Prefer spaces to tabs
+(save-place-mode t)                 ;; Automatically save your place in files
+(savehist-mode t)                   ;; Save history in minibuffer to keep recent commands easily accessible
+(recentf-mode t)                    ;; Keep track of open files
+(desktop-save-mode 1)
 
 ;; Move through windows with Ctrl-<arrow keys>
 (windmove-default-keybindings 'control) ; You can use other modifiers here
@@ -74,17 +66,34 @@
 (when (display-graphic-p)
   (context-menu-mode))
 
-;; Don't litter file system with *~ backup files; put them all inside
-;; ~/.emacs.d/backup or wherever
-(defun bedrock--backup-file-name (fpath)
-  "Return a new file path of a given file path.
-If the new path's directories does not exist, create them."
-  (let* ((backupRootDir (concat user-emacs-directory "emacs-backup/"))
-         (filePath (replace-regexp-in-string "[A-Za-z]:" "" fpath )) ; remove Windows driver letter in path
-         (backupFilePath (replace-regexp-in-string "//" "/" (concat backupRootDir filePath "~") )))
-    (make-directory (file-name-directory backupFilePath) (file-name-directory backupFilePath))
-    backupFilePath))
-(setopt make-backup-file-name-function 'bedrock--backup-file-name)
+(setq uniquify-buffer-name-style 'forward
+      window-resize-pixelwise t
+      frame-resize-pixelwise t
+      load-prefer-newer t
+      backup-by-copying t
+      ;; Backups are placed into your Emacs directory, e.g. ~/.config/emacs/backups
+      backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
+
+      ;; Store automatic customisation options elsewhere
+      custom-file (expand-file-name "custom.el" user-emacs-directory)
+
+      ring-bell-function 'ignore ;; Never ding at me, ever
+      make-backup-files nil      ;; disable backup files
+      auto-save-default nil      ;; stop creating #autosave# files
+      create-lockfiles nil       ;; No need for ~ files when editing
+      vc-follow-symlinks t
+      ;; clipboard/selection shenanigans
+      x-select-enable-clipboard t
+      x-select-enable-primary t
+      save-interprogram-paste-before-kill t
+
+      )
+
+(set-face-attribute 'default nil :font "Consolas" :height 130) ;; height = px * 100
+
+;; start server, open files using `emacsclient -n`
+(load "server")
+(unless (server-running-p) (server-start))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -101,6 +110,18 @@ If the new path's directories does not exist, create them."
   :ensure t
   :config
   (which-key-mode))
+
+;; Add extra context to Emacs documentation to help make it easier to
+;; search and understand. This configuration uses the keybindings
+;; recommended by the package author.
+(use-package helpful
+  :ensure t
+  :bind (("C-h f" . #'helpful-callable)
+         ("C-h v" . #'helpful-variable)
+         ("C-h k" . #'helpful-key)
+         ("C-c C-d" . #'helpful-at-point)
+         ("C-h F" . #'helpful-function)
+         ("C-h C" . #'helpful-command)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -147,7 +168,7 @@ If the new path's directories does not exist, create them."
 (setopt switch-to-buffer-obey-display-actions t)   ; Make switching buffers more consistent
 
 (setopt show-trailing-whitespace nil)      ; By default, don't underline trailing spaces
-(setopt indicate-buffer-boundaries 'left)  ; Show buffer top and bottom in the margin
+;; (setopt indicate-buffer-boundaries 'left)  ; Show buffer top and bottom in the margin
 
 ;; Enable horizontal scrolling
 (setopt mouse-wheel-tilt-scroll t)
@@ -159,11 +180,11 @@ If the new path's directories does not exist, create them."
 ;; (setopt tab-width 4)
 
 ;; Misc. UI tweaks
-(blink-cursor-mode -1)                                ; Steady cursor
-(pixel-scroll-precision-mode)                         ; Smooth scrolling
+(blink-cursor-mode -1)        ;; Steady cursor
+(pixel-scroll-precision-mode) ;; Smooth scrolling
 
 ;; Use common keystrokes by default
-(cua-mode)
+;; (cua-mode)
 
 ;; Display line numbers in programming mode
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -175,6 +196,43 @@ If the new path's directories does not exist, create them."
 ;; Modes to highlight the current line with
 (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
   (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+
+;; split vertically/horizontally with C-x 3 and C-x 2
+(defun split-right-and-buffer-list ()
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1)
+  (consult-buffer))
+
+(defun split-below-and-buffer-list ()
+  (interactive)
+  (split-window-vertically)
+  (other-window 1)
+  (consult-buffer))
+
+(global-set-key (kbd "C-x 3") 'split-right-and-buffer-list)
+(global-set-key (kbd "C-x 2") 'split-below-and-buffer-list)
+
+(defun save-and-switch-buffer ()
+  (interactive)
+  (when (and (buffer-file-name)
+             (not (bound-and-true-p archive-subfile-mode)))
+    (save-buffer))
+  (ido-switch-buffer))
+
+;; when switching out of emacs, all unsaved files will be saved
+(defun save-all-unsaved ()
+  "Save all unsaved files - when switching away from emacs"
+  (interactive)
+  (save-some-buffers t))
+(add-hook 'focus-out-hook 'save-all-unsaved)
+
+(defun save-and-switch-buffer ()
+  (interactive)
+  (when (and (buffer-file-name)
+             (not (bound-and-true-p archive-subfile-mode)))
+    (save-buffer))
+  (consult-buffer))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -188,9 +246,9 @@ If the new path's directories does not exist, create them."
 ;; Add the time to the tab-bar, if visible
 (add-to-list 'tab-bar-format 'tab-bar-format-align-right 'append)
 (add-to-list 'tab-bar-format 'tab-bar-format-global 'append)
-(setopt display-time-format "%a %F %T")
-(setopt display-time-interval 1)
-(display-time-mode)
+;; (setopt display-time-format "%a %F %T")
+;; (setopt display-time-interval 1)
+;; (display-time-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -198,9 +256,12 @@ If the new path's directories does not exist, create them."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(setq custom-safe-themes t)
 (use-package emacs
   :config
-  (load-theme 'modus-vivendi))          ; for light theme, use modus-operandi
+  ;; light themes: modus-operandi, ef-elea-light, ef-spring
+  ;; dark themes:  modus-vivendi,  ef-elea-dark, ef-melissa-dark
+  (load-theme 'ef-elea-light t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -208,49 +269,16 @@ If the new path's directories does not exist, create them."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Uncomment the (load-file …) lines or copy code from the extras/ elisp files
-;; as desired
+;; Uncomment the (load-file …) lines or copy code from the extras/ elisp files as desired
 
 ;; UI/UX enhancements mostly focused on minibuffer and autocompletion interfaces
 ;; These ones are *strongly* recommended!
-;(load-file (expand-file-name "extras/base.el" user-emacs-directory))
-
-;; Packages for software development
-;(load-file (expand-file-name "extras/dev.el" user-emacs-directory))
+(load-file (expand-file-name "extras/base.el" user-emacs-directory))
 
 ;; Vim-bindings in Emacs (evil-mode configuration)
-;(load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
+(load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
 
 ;; Org-mode configuration
 ;; WARNING: need to customize things inside the elisp file before use! See
 ;; the file extras/org-intro.txt for help.
-;(load-file (expand-file-name "extras/org.el" user-emacs-directory))
-
-;; Email configuration in Emacs
-;; WARNING: needs the `mu' program installed; see the elisp file for more
-;; details.
-;(load-file (expand-file-name "extras/email.el" user-emacs-directory))
-
-;; Tools for academic researchers
-;(load-file (expand-file-name "extras/researcher.el" user-emacs-directory))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Built-in customization framework
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages '(which-key)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-
-(setq gc-cons-threshold (or bedrock--initial-gc-threshold 800000))
+(load-file (expand-file-name "extras/org.el" user-emacs-directory))
