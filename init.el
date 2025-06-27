@@ -1,13 +1,3 @@
-;;;  ________                                                _______                 __                            __
-;;; /        |                                              /       \               /  |                          /  |
-;;; $$$$$$$$/ _____  ____   ______   _______  _______       $$$$$$$  | ______   ____$$ | ______   ______   _______$$ |   __
-;;; $$ |__   /     \/    \ /      \ /       |/       |      $$ |__$$ |/      \ /    $$ |/      \ /      \ /       $$ |  /  |
-;;; $$    |  $$$$$$ $$$$  |$$$$$$  /$$$$$$$//$$$$$$$/       $$    $$</$$$$$$  /$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$$/$$ |_/$$/
-;;; $$$$$/   $$ | $$ | $$ |/    $$ $$ |     $$      \       $$$$$$$  $$    $$ $$ |  $$ $$ |  $$/$$ |  $$ $$ |     $$   $$<
-;;; $$ |_____$$ | $$ | $$ /$$$$$$$ $$ \_____ $$$$$$  |      $$ |__$$ $$$$$$$$/$$ \__$$ $$ |     $$ \__$$ $$ \_____$$$$$$  \
-;;; $$       $$ | $$ | $$ $$    $$ $$       /     $$/       $$    $$/$$       $$    $$ $$ |     $$    $$/$$       $$ | $$  |
-;;; $$$$$$$$/$$/  $$/  $$/ $$$$$$$/ $$$$$$$/$$$$$$$/        $$$$$$$/  $$$$$$$/ $$$$$$$/$$/       $$$$$$/  $$$$$$$/$$/   $$/
-
 ;;; Minimal init.el
 
 ;;; Contents:
@@ -26,11 +16,7 @@
 (when (< emacs-major-version 29)
   (error "Emacs Bedrock only works with Emacs 29 and newer; you have version %s" emacs-major-version))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;;   Basic settings
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Package initialization
 (with-eval-after-load 'package
@@ -51,10 +37,39 @@
 (electric-pair-mode t)              ;; Automatically insert closing parens
 (show-paren-mode 1)                 ;; Visualize matching parens
 (setq-default indent-tabs-mode nil) ;; Prefer spaces to tabs
-(save-place-mode t)                 ;; Automatically save your place in files
 (savehist-mode t)                   ;; Save history in minibuffer to keep recent commands easily accessible
-(recentf-mode t)                    ;; Keep track of open files
-(desktop-save-mode 1)
+
+;; save desktop: https://old.reddit.com/r/emacs/comments/aoof3m/can_i_disable_asking_to_save_directory_for_desktop/
+(defconst saveDesktopDir (expand-file-name "save/desktop" user-emacs-directory))
+(use-package desktop
+  :defer 2
+  :config
+  (setq desktop-path (list saveDesktopDir))
+  (setq desktop-dirname saveDesktopDir)
+  (setq desktop-restore-eager 5)
+  (setq desktop-load-locked-desktop t)
+  (desktop-save-mode 1))
+
+;; Improve frame title to show file path.
+(setq frame-title-format
+      '("%b - "
+	(:eval (if (buffer-file-name)
+		   (abbreviate-file-name (buffer-file-name))
+		 "%b"))))
+
+;; When you visit a file, point goes to the last place where it
+;; was when you previously visited the same file.
+;; http://www.emacswiki.org/emacs/SavePlace
+(require 'saveplace)
+(setq-default save-place t)
+(setq save-place-file (concat user-emacs-directory ".places"))
+
+;; Turn on recent file mode so that you can more easily switch to
+;; recently edited files when you first start emacs
+(setq recentf-save-file (concat user-emacs-directory ".recentf"))
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 40)
 
 ;; Move through windows with Ctrl-<arrow keys>
 (windmove-default-keybindings 'control) ; You can use other modifiers here
@@ -70,9 +85,6 @@
       window-resize-pixelwise t
       frame-resize-pixelwise t
       load-prefer-newer t
-      backup-by-copying t
-      ;; Backups are placed into your Emacs directory, e.g. ~/.config/emacs/backups
-      backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
 
       ;; Store automatic customisation options elsewhere
       custom-file (expand-file-name "custom.el" user-emacs-directory)
@@ -86,7 +98,6 @@
       x-select-enable-clipboard t
       x-select-enable-primary t
       save-interprogram-paste-before-kill t
-
       )
 
 (set-face-attribute 'default nil :font "Consolas" :height 130) ;; height = px * 100
@@ -95,11 +106,7 @@
 (load "server")
 (unless (server-running-p) (server-start))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;;   Discovery aids
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Show the help buffer after startup
 (add-hook 'after-init-hook 'help-quick)
@@ -143,16 +150,9 @@
 (setopt completions-format 'one-column)
 (setopt completions-group t)
 (setopt completion-auto-select 'second-tab)            ; Much more eager
-;(setopt completion-auto-select t)                     ; See `C-h v completion-auto-select' for more possible values
+(setopt completion-auto-select t)                      ; See `C-h v completion-auto-select' for more possible values
 
 (keymap-set minibuffer-mode-map "TAB" 'minibuffer-complete) ; TAB acts more like how it does in the shell
-
-;; For a fancier built-in completion option, try ido-mode,
-;; icomplete-vertical, or fido-mode. See also the file extras/base.el
-
-;(icomplete-vertical-mode)
-;(fido-vertical-mode)
-;(setopt icomplete-delay-completions-threshold 4000)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -184,7 +184,7 @@
 (pixel-scroll-precision-mode) ;; Smooth scrolling
 
 ;; Use common keystrokes by default
-;; (cua-mode)
+(cua-mode)
 
 ;; Display line numbers in programming mode
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -197,42 +197,6 @@
 (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
   (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
 
-;; split vertically/horizontally with C-x 3 and C-x 2
-(defun split-right-and-buffer-list ()
-  (interactive)
-  (split-window-horizontally)
-  (other-window 1)
-  (consult-buffer))
-
-(defun split-below-and-buffer-list ()
-  (interactive)
-  (split-window-vertically)
-  (other-window 1)
-  (consult-buffer))
-
-(global-set-key (kbd "C-x 3") 'split-right-and-buffer-list)
-(global-set-key (kbd "C-x 2") 'split-below-and-buffer-list)
-
-(defun save-and-switch-buffer ()
-  (interactive)
-  (when (and (buffer-file-name)
-             (not (bound-and-true-p archive-subfile-mode)))
-    (save-buffer))
-  (ido-switch-buffer))
-
-;; when switching out of emacs, all unsaved files will be saved
-(defun save-all-unsaved ()
-  "Save all unsaved files - when switching away from emacs"
-  (interactive)
-  (save-some-buffers t))
-(add-hook 'focus-out-hook 'save-all-unsaved)
-
-(defun save-and-switch-buffer ()
-  (interactive)
-  (when (and (buffer-file-name)
-             (not (bound-and-true-p archive-subfile-mode)))
-    (save-buffer))
-  (consult-buffer))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -276,9 +240,92 @@
 (load-file (expand-file-name "extras/base.el" user-emacs-directory))
 
 ;; Vim-bindings in Emacs (evil-mode configuration)
-(load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
+;; (load-file (expand-file-name "extras/vim-like.el" user-emacs-directory))
+(setq evil-disable-insert-state-bindings t)
+(use-package evil
+  :ensure t
+  :init
+  (setq evil-respect-visual-line-mode t)
+  (setq evil-undo-system 'undo-redo)
+
+  ;; Enable this if you want C-u to scroll up, more like pure Vim
+                                        ;(setq evil-want-C-u-scroll t)
+
+  :config
+  (evil-mode)
+  )
+
+(setq evil-default-state 'emacs)
 
 ;; Org-mode configuration
 ;; WARNING: need to customize things inside the elisp file before use! See
 ;; the file extras/org-intro.txt for help.
 (load-file (expand-file-name "extras/org.el" user-emacs-directory))
+
+;; start with this file
+(find-file "~/depot/kong/kg-kong-kground/notes.org")
+
+;; ==== personal functions ====
+
+;; config edit/reload
+(defun config-visit()
+  (interactive)
+  (find-file user-init-file))
+(global-set-key (kbd "C-c e") 'config-visit)
+
+(defun config-reload()
+  (interactive)
+  (load-file user-init-file)
+  (message "Config reloaded!"))
+(global-set-key (kbd "C-c r") 'config-reload)
+
+;; jump to scratch file
+(defun switch-to-scratch-buffer ()
+  "Switch to the current session's scratch buffer."
+  (interactive)
+  (switch-to-buffer "*scratch*"))
+(bind-key "C-c s" #'switch-to-scratch-buffer)
+
+;; jump to notes
+(defun switch-to-notes ()
+  "Switch to Notes"
+  (interactive)
+  (find-file "~/depot/kong/kg-kong-kground/notes.org"))
+(bind-key "C-c n" #'switch-to-notes)
+
+;; split vertically/horizontally with C-x 3 and C-x 2
+(defun split-right-and-buffer-list ()
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1)
+  (consult-buffer))
+(global-set-key (kbd "C-x 3") 'split-right-and-buffer-list)
+
+(defun split-below-and-buffer-list ()
+  (interactive)
+  (split-window-vertically)
+  (other-window 1)
+  (consult-buffer))
+(global-set-key (kbd "C-x 2") 'split-below-and-buffer-list)
+
+(defun save-and-switch-buffer ()
+  (interactive)
+  (when (and (buffer-file-name)
+             (not (bound-and-true-p archive-subfile-mode)))
+    (save-buffer))
+  (ido-switch-buffer))
+
+;; when switching out of emacs, all unsaved files will be saved
+(defun save-all-unsaved ()
+  "Save all unsaved files - when switching away from emacs"
+  (interactive)
+  (save-some-buffers t))
+(add-hook 'focus-out-hook 'save-all-unsaved)
+
+(defun save-and-switch-buffer ()
+  (interactive)
+  (when (and (buffer-file-name)
+             (not (bound-and-true-p archive-subfile-mode)))
+    (save-buffer))
+  (consult-buffer))
+
