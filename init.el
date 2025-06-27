@@ -39,16 +39,10 @@
 (setq-default indent-tabs-mode nil) ;; Prefer spaces to tabs
 (savehist-mode t)                   ;; Save history in minibuffer to keep recent commands easily accessible
 
-;; save desktop: https://old.reddit.com/r/emacs/comments/aoof3m/can_i_disable_asking_to_save_directory_for_desktop/
-(defconst saveDesktopDir (expand-file-name "save/desktop" user-emacs-directory))
-(use-package desktop
-  :defer 2
-  :config
-  (setq desktop-path (list saveDesktopDir))
-  (setq desktop-dirname saveDesktopDir)
-  (setq desktop-restore-eager 5)
-  (setq desktop-load-locked-desktop t)
-  (desktop-save-mode 1))
+;; save desktop
+(desktop-save-mode)
+(setq desktop-path '("~/.emacs.d/.cache"))
+(desktop-read)
 
 ;; Improve frame title to show file path.
 (setq frame-title-format
@@ -180,8 +174,8 @@
 ;; (setopt tab-width 4)
 
 ;; Misc. UI tweaks
-(blink-cursor-mode -1)        ;; Steady cursor
-(pixel-scroll-precision-mode) ;; Smooth scrolling
+(blink-cursor-mode -1)          ;; Steady cursor
+(pixel-scroll-precision-mode 1) ;; Smooth scrolling
 
 ;; Use common keystrokes by default
 (cua-mode)
